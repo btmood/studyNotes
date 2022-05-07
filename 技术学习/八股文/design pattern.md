@@ -694,3 +694,394 @@ public class Adaptor implements ITarget {
 **定义**
 
 门面模式为子系统提供一组统一的接口，定义一组高层接口让子系统更易用。
+
+**应用场景**
+
+这里所说的接口并非是java中的interface，而是被其它客户端调用的方法或接口
+
+- 用易用性问题
+
+  比如说子系统调用太过复杂，有很多方法要顺序调用，那么就可以运用门面模式创建一个高层类，把这些调用封装起来，让客户端只去调用高层类的方法
+
+- 解决性能问题
+
+  比如app一个页面要调用三个接口，会造成卡顿，那么可以运用门面模式创建高层类将这三个接口的功能封装成一个接口，那么此时app就只需要调用一个接口了
+
+- 解决分布式事务问题
+
+  比如在分布式系统中某个功能需要调用两个接口，但是这两个接口都设计到事务，如果使用分布式事务的话会很麻烦，所以可以使用门面模式改成一个接口，让两个功能都放到一个事务中进行。
+
+### 组合模式【结构型】
+
+组合模式跟我们之前讲的面向对象设计中的“组合关系（通过组合来组装两个类）”，完全是两码事。这里讲的“组合模式”，主要是用来处理树形结构数据。
+
+正因为其应用场景的特殊性，数据必须能表示成树形结构，这也导致了这种模式在实际的项目开发中并不那么常用。但是，一旦数据满足树形结构，应用这种模式就能发挥很大的作用，能让代码变得非常简洁。
+
+**定义**
+
+将一组对象组织（Compose）成树形结构，以表示一种“部分 - 整体”的层次结构。组合让客户端可以统一单个对象和组合对象的处理逻辑。
+
+***TODO***
+
+### 享元模式【结构型】
+
+所谓“享元”，顾名思义就是被共享的单元。享元模式的意图是复用对象，节省内存，前提是享元对象是不可变对象。
+
+定义中的“不可变对象”指的是，一旦通过构造函数初始化完成之后，它的状态（对象的成员变量或者属性）就不会再被修改了。所以，不可变对象不能暴露任何 set() 等修改内部状态的方法。之所以要求享元是不可变对象，那是因为它会被多处代码共享使用，避免一处代码对享元进行了修改，影响到其他使用它的代码。
+
+**代码结构**
+
+主要是通过工厂模式，在工厂类中，通过一个 Map 来缓存已经创建过的享元对象，来达到复用的目的。
+
+**和单例模式的区别**
+
+1. 在单例模式中，一个类只能创建一个对象，而在享元模式中，一个类可以创建多个对象，每个对象被多处代码引用共享。实际上，享元模式有点类似于之前讲到的单例的变体：多例。
+2. 我们前面也多次提到，区别两种设计模式，不能光看代码实现，而是要看设计意图，也就是要解决的问题。尽管从代码实现上来看，享元模式和多例有很多相似之处，但从设计意图上来看，它们是完全不同的。应用享元模式是为了对象复用，节省内存，而应用多例模式是为了限制对象的个数。
+
+**跟缓存的区别**
+
+在享元模式的实现中，我们通过工厂类来“缓存”已经创建好的对象。这里的“缓存”实际上是“存储”的意思，跟我们平时所说的“数据库缓存”“CPU 缓存”“MemCache 缓存”是两回事。我们平时所讲的缓存，主要是为了提高访问效率，而非复用。
+
+**跟对象池的区别**
+
+1. 对象池、连接池（比如数据库连接池）、线程池等也是为了复用，那它们跟享元模式有什么区别呢？
+2. 你可能对连接池、线程池比较熟悉，对对象池比较陌生，所以，这里我简单解释一下对象池。像 C++ 这样的编程语言，内存的管理是由程序员负责的。为了避免频繁地进行对象创建和释放导致内存碎片，我们可以预先申请一片连续的内存空间，也就是这里说的对象池。每次创建对象时，我们从对象池中直接取出一个空闲对象来使用，对象使用完成之后，再放回到对象池中以供后续复用，而非直接释放掉。
+3. 虽然对象池、连接池、线程池、享元模式都是为了复用，但是，如果我们再细致地抠一抠“复用”这个字眼的话，对象池、连接池、线程池等池化技术中的“复用”和享元模式中的“复用”实际上是不同的概念。
+4. 池化技术中的“复用”可以理解为“重复使用”，主要目的是节省时间（比如从数据库池中取一个连接，不需要重新创建）。在任意时刻，每一个对象、连接、线程，并不会被多处使用，而是被一个使用者独占，当使用完成之后，放回到池中，再由其他使用者重复利用。享元模式中的“复用”可以理解为“共享使用”，在整个生命周期中，都是被所有使用者共享的，**主要目的是节省空间**。
+
+**享元模式在Integer中的应用**
+
+这其实是一个老生常谈的问题
+
+Integer对象的值在 -128 到 127 之间，会从 IntegerCache 类中直接返回，否则才调用 new 方法创建。
+
+而IntegerCache使用的就是享元模式，它就相当于是一个工厂类
+
+实际上，JDK 也提供了方法来让我们可以自定义缓存的最大值，有下面两种方式。如果你通过分析应用的 JVM 内存占用情况，发现 -128 到 255 之间的数据占用的内存比较多，你就可以用如下方式，将缓存的最大值从 127 调整到 255。不过，这里注意一下，JDK 并没有提供设置最小值的方法。
+
+```java
+//方法一：
+-Djava.lang.Integer.IntegerCache.high=255
+//方法二：
+-XX:AutoBoxCacheMax=255
+```
+
+实际上，除了 Integer 类型之外，其他包装器类型，比如 Long、Short、Byte 等，也都利用了享元模式来缓存 -128 到 127 之间的数据。比如，Long 类型对应的 LongCache 享元工厂类及 valueOf() 函数代码如下所示：
+
+对于下面这样三种创建整型对象的方式，我们优先使用后两种。
+
+```java
+Integer a = new Integer(123);
+
+Integer a = 123;
+
+Integer a = Integer.valueOf(123);
+```
+
+
+
+**享元模式在String中的应用**
+
+String 类利用享元模式来复用相同的字符串常量。JVM 会专门开辟一块存储区来存储字符串常量，这块存储区叫作“字符串常量池”。
+
+不过，String 类的享元模式的设计，跟 Integer 类稍微有些不同。Integer 类中要共享的对象，是在类加载的时候，就集中一次性创建好的。但是，对于字符串来说，我们没法事先知道要共享哪些字符串常量，所以没办法事先创建好，只能在某个字符串常量第一次被用到的时候，存储到常量池中，当之后再用到的时候，直接引用常量池中已经存在的即可，就不需要再重新创建了。
+
+### 观察者模式【行为型】
+
+创建型设计模式主要解决“对象的创建”问题，结构型设计模式主要解决“类或对象的组合或组装”问题，那行为型设计模式主要解决的就是“类或对象之间的交互”问题。
+
+行为型模式包括：观察者模式、模板模式、策略模式、职责链模式、状态模式、迭代器模式、访问者模式、备忘录模式、命令模式、解释器模式、中介模式
+
+**1. 定义**
+
+**观察者模式**也被称为**发布订阅模式**
+
+在对象之间定义一个一对多的依赖，当一个对象状态改变的时候，所有依赖的对象都会自动收到通知。
+
+一般情况下，被依赖的对象叫作**被观察者**（Observable），依赖的对象叫作**观察者**（Observer）。不过，在实际的项目开发中，这两种对象的称呼是比较灵活的，有各种不同的叫法，比如：Subject-Observer、Publisher-Subscriber、Producer-Consumer、EventEmitter-EventListener、Dispatcher-Listener。不管怎么称呼，只要应用场景符合刚刚给出的定义，都可以看作观察者模式。2. 
+
+**2. 观察者模式的模板代码**
+
+```java
+import java.util.ArrayList;
+import java.util.List;
+
+public interface Subject {
+  void registerObserver(Observer observer);
+
+  void removeObserver(Observer observer);
+
+  void notifyObservers(Message message);
+}
+
+public interface Observer {
+  void update(Message message);
+}
+
+public class ConcreteSubject implements Subject {
+  private List<Observer> observers = new ArrayList<Observer>();
+
+  @Override
+  public void registerObserver(Observer observer) {
+    observers.add(observer);
+  }
+
+  @Override
+  public void removeObserver(Observer observer) {
+    observers.remove(observer);
+  }
+
+  @Override
+  public void notifyObservers(Message message) {
+    for (Observer observer : observers) {
+      observer.update(message);
+    }
+  }
+}
+
+public class ConcreteObserverOne implements Observer {
+
+  @Override
+  public void update(Message message) {
+    // TODO: 获取消息通知，执行自己的逻辑...
+    System.out.println("ConcreteObserverOne is notified.");
+  }
+}
+
+public class ConcreteObserverTwo implements Observer {
+
+  @Override
+  public void update(Message message) {
+    // TODO: 获取消息通知，执行自己的逻辑...
+    System.out.println("ConcreteObserverTwo is notified.");
+  }
+}
+
+public class Demo {
+
+  public static void main(String[] args) {
+    ConcreteSubject subject = new ConcreteSubject();
+    subject.registerObserver(new ConcreteObserverOne());
+    subject.registerObserver(new ConcreteObserverTwo());
+    subject.notifyObservers(new Message());
+  }
+}
+```
+
+**3. 一些理解**
+
+观察者模式分为观察者和被观察者，被观察者只有一个，观察者有多个。具体到代码中被观察者需要通知所有的观察者执行某个任务，如果把观察者全部写在被观察者里面的某个方法里，耦合会非常严重。
+
+这里就定义一个被观察者集合`List<Observe>`，放到被观察者类中，创建被观察者时，把所有观察者放到集合中，被观察者要通知他们时，只需要遍历集合就可以了。
+
+**设计模式要干的事情就是解耦。创建型模式是将创建和使用代码解耦，结构型模式是将不同功能代码解耦，行为型模式是将不同的行为代码解耦，具体到观察者模式，它是将观察者和被观察者代码解耦。**借助设计模式，我们利用更好的代码结构，将一大坨代码拆分成职责更单一的小类，让其满足开闭原则、高内聚松耦合等特性，以此来控制和应对代码的复杂性，提高代码的可扩展性。
+
+**应用**
+
+1. 观察者模式的应用场景非常广泛，小到代码层面的解耦，大到架构层面的系统解耦，再或者一些产品的设计思路，都有这种模式的影子，比如，邮件订阅、RSS Feeds，本质上都是观察者模式。
+2. 不同的应用场景和需求下，这个模式也有截然不同的实现方式，开篇的时候我们也提到，有同步阻塞的实现方式，也有异步非阻塞的实现方式；有进程内的实现方式，也有跨进程的实现方式。
+3. 之前讲到的实现方式，从刚刚的分类方式上来看，它是一种同步阻塞的实现方式。观察者和被观察者代码在同一个线程内执行，被观察者一直阻塞，直到所有的观察者代码都执行完成之后，才执行后续的代码。对照上面讲到的用户注册的例子，register() 函数依次调用执行每个观察者的 handleRegSuccess() 函数，等到都执行完成之后，才会返回结果给客户端。
+4. 如果注册接口是一个调用比较频繁的接口，对性能非常敏感，希望接口的响应时间尽可能短，那我们可以将同步阻塞的实现方式改为异步非阻塞的实现方式，以此来减少响应时间。具体来讲，当 userService.register() 函数执行完成之后，我们启动一个新的线程来执行观察者的 handleRegSuccess() 函数，这样 userController.register() 函数就不需要等到所有的 handleRegSuccess() 函数都执行完成之后才返回结果给客户端。userController.register() 函数从执行 3 个 SQL 语句才返回，减少到只需要执行 1 个 SQL 语句就返回，响应时间粗略来讲减少为原来的 1/3。
+5. 那如何实现一个异步非阻塞的观察者模式呢？简单一点的做法是，在每个 handleRegSuccess() 函数中，创建一个新的线程执行代码。不过，我们还有更加优雅的实现方式，那就是基于 EventBus 来实现。今天，我们就不展开讲解了。在下一讲中，我会用一节的时间，借鉴 Google Guava EventBus 框架的设计思想，手把手带你开发一个支持异步非阻塞的 EventBus 框架。它可以复用在任何需要异步非阻塞观察者模式的应用场景中。
+6. 刚刚讲到的两个场景，不管是同步阻塞实现方式还是异步非阻塞实现方式，都是进程内的实现方式。如果用户注册成功之后，我们需要发送用户信息给大数据征信系统，而大数据征信系统是一个独立的系统，跟它之间的交互是跨不同进程的，那如何实现一个跨进程的观察者模式呢？
+7. 如果大数据征信系统提供了发送用户注册信息的 RPC 接口，我们仍然可以沿用之前的实现思路，在 handleRegSuccess() 函数中调用 RPC 接口来发送数据。但是，我们还有更加优雅、更加常用的一种实现方式，那就是基于消息队列（Message Queue，比如 ActiveMQ）来实现。
+8. 当然，这种实现方式也有弊端，那就是需要引入一个新的系统（消息队列），增加了维护成本。不过，它的好处也非常明显。在原来的实现方式中，观察者需要注册到被观察者中，被观察者需要依次遍历观察者来发送消息。而基于消息队列的实现方式，被观察者和观察者解耦更加彻底，两部分的耦合更小。被观察者完全不感知观察者，同理，观察者也完全不感知被观察者。被观察者只管发送消息到消息队列，观察者只管从消息队列中读取消息来执行相应的逻辑。
+
+### 模板模式【行为型】
+
+模板方法模式在一个方法中定义一个算法骨架，并将某些步骤推迟到子类中实现。模板方法模式可以让子类在不改变算法整体结构的情况下，重新定义算法中的某些步骤。
+
+这里的“算法”，我们可以理解为广义上的“业务逻辑”，并不特指数据结构和算法中的“算法”。这里的算法骨架就是“模板”，包含算法骨架的方法就是“模板方法”，这也是模板方法模式名字的由来
+
+**代码示例**
+
+```java
+public abstract class AbstractClass {
+    public final void templateMethod() {
+        //...
+        method1();
+        //...
+        method2();
+        //...
+    }
+
+    protected abstract void method1();
+    protected abstract void method2();
+}
+
+public class ConcreteClass1 extends AbstractClass {
+
+    @Override
+    protected void method1() {
+        //...
+    }
+
+    @Override
+    protected void method2() {
+        //...
+    }
+}
+
+public class ConcreteClass2 extends AbstractClass {
+
+    @Override
+    protected void method1() {
+        //...
+    }
+
+    @Override
+    protected void method2() {
+        //...
+    }
+}
+
+AbstractClass demo = ConcreteClass1();
+demo.templateMethod();
+```
+
+看了代码瞬间明白，就是父类先定义一些抽象方法（强迫子类重写），父类中直接使用这些抽象方法实现业务逻辑。然后子类继承父类重写抽象方法，再调用父类的业务方法就实现了新的功能。相当于是创建了一个模板，由子类去填充。
+
+**应用场景**
+
+1. 复用
+
+   模板模式把一个算法中不变的流程抽象到父类的模板方法 templateMethod() 中，将可变的部分 method1()、method2() 留给子类 ContreteClass1 和 ContreteClass2 来实现。所有的子类都可以复用父类中模板方法定义的流程代码。
+
+### Java InputStream
+
+Java IO 类库中，有很多类的设计用到了模板模式，比如 InputStream、OutputStream、Reader、Writer。我们拿 InputStream 来举例说明一下。
+
+我把 InputStream 部分相关代码贴在了下面。在代码中，read() 函数是一个模板方法，定义了读取数据的整个流程，并且暴露了一个可以由子类来定制的抽象方法。不过这个方法也被命名为了 read()，只是参数跟模板方法不同。
+
+```
+import java.io.IOException;
+
+public abstract class InputStream implements Closeable {
+    //...省略其他代码...
+
+    public int read(byte b[], int off, int len) throws IOException {
+        if (b == null) {
+            throw new NullPointerException();
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
+            return 0;
+        }
+        int c = read();
+        if (c == -1) {
+            return -1;
+        }
+        b[off] = (byte) c;
+        int i = 1;
+        try {
+            for (; i < len; i++) {
+                c = read();
+                if (c == -1) {
+                    break;
+                }
+                b[off + i] = (byte) c;
+            }
+        } catch (IOException ee) {
+        }
+        return i;
+
+    }
+    public abstract int read() throws IOException;
+}
+
+public class ByteArrayInputStream extends InputStream {
+    //...省略其他代码...
+
+    @Override
+    public synchronized int read() {
+        return (pos < count) ? (buf[pos++] & 0xff) : -1;
+    }
+}
+```
+
+### Java AbstractList
+
+在 Java AbstractList 类中，addAll() 函数可以看作模板方法，add() 是子类需要重写的方法，尽管没有声明为 abstract 的，但函数实现直接抛出了 UnsupportedOperationException 异常。前提是，如果子类不重写是不能使用的。
+
+```java
+public boolean addAll(int index,Collection<?extends E> c){
+        rangeCheckForAdd(index);
+        boolean modified=false;
+
+        for(E e:c){
+            add(index++,e);
+            modified=true;
+        }
+        return modified;
+}
+
+public void add(int index,E element){
+        throw new UnsupportedOperationException();
+}
+```
+
+2. 扩展
+
+这里所说的扩展，并不是指代码的扩展性，而是指框架的扩展性，有点类似我们之前讲到的控制反转。基于这个作用，模板模式常用在框架的开发中，让框架用户可以在不修改框架源码的情况下，定制化框架的功能。
+
+
+
+Java Servlet
+
+
+
+3. 回调
+
+   对于回调这一概念的理解
+
+```java
+public interface ICallback {
+  void methodToCallback();
+}
+
+public class BClass {
+
+  public void process(ICallback callback) {
+    // ...
+    callback.methodToCallback();
+    // ...
+  }
+}
+
+public class AClass {
+
+  public static void main(String[] args) {
+    BClass b = new BClass();
+    b.process(
+        new ICallback() { // 回调对象
+          @Override
+          public void methodToCallback() {
+            System.out.println("Call back me.");
+          }
+        });
+  }
+}
+```
+
+感觉非常像函数式编程
+
+同步回调——模板模式
+
+异步回调——观察者模式
+
+JdbcTemplate
+
+setClickListener(）
+
+addShutdownHook()
+
+**模板模式vs回调**
+
+1. 回调的原理、实现和应用到此就都讲完了。接下来，我们从应用场景和代码实现两个角度，来对比一下模板模式和回调。
+2. 从应用场景上来看，同步回调跟模板模式几乎一致。它们都是在一个大的算法骨架中，自由替换其中的某个步骤，起到代码复用和扩展的目的。而异步回调跟模板模式有较大差别，更像是观察者模式。
+3. 从代码实现上来看，回调和模板模式完全不同。回调基于组合关系来实现，把一个对象传递给另一个对象，是一种对象之间的关系；模板模式基于继承关系来实现，子类重写父类的抽象方法，是一种类之间的关系。
+4. 前面我们也讲到，组合优于继承。实际上，这里也不例外。在代码实现上，回调相对于模板模式会更加灵活，主要体现在下面几点。
+
+- 像 Java 这种只支持单继承的语言，基于模板模式编写的子类，已经继承了一个父类，不再具有继承的能力。
+- 回调可以使用匿名类来创建回调对象，可以不用事先定义类；而模板模式针对不同的实现都要定义不同的子类。
+- 如果某个类中定义了多个模板方法，每个方法都有对应的抽象方法，那即便我们只用到其中的一个模板方法，子类也必须实现所有的抽象方法。而回调就更加灵活，我们只需要往用到的模板方法中注入回调对象即可。
