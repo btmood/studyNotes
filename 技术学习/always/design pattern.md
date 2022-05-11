@@ -947,13 +947,13 @@ demo.templateMethod();
 
    模板模式把一个算法中不变的流程抽象到父类的模板方法 templateMethod() 中，将可变的部分 method1()、method2() 留给子类 ContreteClass1 和 ContreteClass2 来实现。所有的子类都可以复用父类中模板方法定义的流程代码。
 
-### Java InputStream
+**Java InputStream**
 
 Java IO 类库中，有很多类的设计用到了模板模式，比如 InputStream、OutputStream、Reader、Writer。我们拿 InputStream 来举例说明一下。
 
 我把 InputStream 部分相关代码贴在了下面。在代码中，read() 函数是一个模板方法，定义了读取数据的整个流程，并且暴露了一个可以由子类来定制的抽象方法。不过这个方法也被命名为了 read()，只是参数跟模板方法不同。
 
-```
+```java
 import java.io.IOException;
 
 public abstract class InputStream implements Closeable {
@@ -999,7 +999,7 @@ public class ByteArrayInputStream extends InputStream {
 }
 ```
 
-### Java AbstractList
+**Java AbstractList**
 
 在 Java AbstractList 类中，addAll() 函数可以看作模板方法，add() 是子类需要重写的方法，尽管没有声明为 abstract 的，但函数实现直接抛出了 UnsupportedOperationException 异常。前提是，如果子类不重写是不能使用的。
 
@@ -1085,3 +1085,109 @@ addShutdownHook()
 - 像 Java 这种只支持单继承的语言，基于模板模式编写的子类，已经继承了一个父类，不再具有继承的能力。
 - 回调可以使用匿名类来创建回调对象，可以不用事先定义类；而模板模式针对不同的实现都要定义不同的子类。
 - 如果某个类中定义了多个模板方法，每个方法都有对应的抽象方法，那即便我们只用到其中的一个模板方法，子类也必须实现所有的抽象方法。而回调就更加灵活，我们只需要往用到的模板方法中注入回调对象即可。
+
+### 策略模式【行为型】
+
+策略模式最常用的场景是避免冗长的if-else、switch。不过，它的作用还不止如此。它也可以像模板模式那样，提供框架的扩展点等等。
+
+**定义**
+
+官方：定义一族算法类，将每个算法分别封装起来，让它们可以互相替换。策略模式可以使算法的变化独立于使用它们的客户端（这里的客户端代指使用算法的代码）。
+
+我们知道，工厂模式是解耦对象的创建和使用，观察者模式是解耦观察者和被观察者。策略模式跟两者类似，也能起到解耦的作用，不过，它解耦的是策略的定义、创建、使用这三部分。接下来，我就详细讲讲一个完整的策略模式应该包含的这三个部分。
+
+**策略模式的使用**
+
+- 定义
+
+  定义策略模式其实十分简单，就是接口——实现的方式，每种策略都是一个实现类
+
+  ```java
+  public interface Strategy {
+    void algorithmInterface();
+  }
+  
+  public class ConcreteStrategyA implements Strategy {
+    @Override
+    public void algorithmInterface() {
+      // 具体的算法...
+    }
+  }
+  
+  public class ConcreteStrategyB implements Strategy {
+    @Override
+    public void algorithmInterface() {
+      // 具体的算法...
+    }
+  ```
+
+- 创建
+
+  既然有这么多策略需要创建，那么显而易见工厂模式可以使用。
+
+  一般来说策略类是无状态的，所以对象可复用，就能使用下面的方式，如果不能复用，就要使用另一种工厂模式了
+
+  ```java
+  public class StrategyFactory {
+    private static final Map<String, Strategy> strategies = new HashMap<>();
+  
+    static {
+      strategies.put("A", new ConcreteStrategyA());
+      strategies.put("B", new ConcreteStrategyB());
+    }
+  
+    public static Strategy getStrategy(String type) {
+      if (type == null || type.isEmpty()) {
+        throw new IllegalArgumentException("type should not be empty.");
+      }
+      return strategies.get(type);
+    }
+  }
+  ```
+
+- 使用
+
+  客户端如何选用策略呢，最常用的是运行时动态选择策略，根据用户输入、配置文件等等选择策略
+
+  当然另一个种方式“非运行时动态确定”，实际上退化成了多态的特性
+
+**策略模式如何去除if-else**
+
+实际上没什么神秘的，秘诀就是***查表（哈希）***
+
+算法里经常会用到的哈希法，把所有可能性都放到哈希里，然后通过key去取值不就行了
+
+**开闭原则？**
+
+上面创建策略的代码种，如果新增策略我们肯定要对哈希进行修改，这样不就违背了开闭原则？有另一种思路可以解决这个问题：
+
+- 创建出策略类，给该类加上注解
+- 启动时动态扫描所有注解，将策略放到一起，这样就不必去维护工厂类中的哈希了
+
+### 职责链模式【行为型】
+
+在前面，我们学习了模板模式、策略模式，今天，我们来学习职责链模式。这三种模式具有相同的作用：复用和扩展，在实际的项目开发中比较常用，特别是框架开发中，我们可以利用它们来提供框架的扩展点，能够让框架的使用者在不修改框架源码的情况下，基于扩展点定制化框架的功能。
+
+**定义**
+
+官方：将请求的发送和接收解耦，让多个接收对象都有机会处理这个请求。将这些接收对象串成一条链，并沿着这条链传递这个请求，直到链上的某个接收对象能够处理它为止。
+
+在职责链模式中，多个处理器（也就是刚刚定义中说的“接收对象”）依次处理同一个请求。一个请求先经过 A 处理器处理，然后再把请求传递给 B 处理器，B 处理器处理完后再传递给 C 处理器，以此类推，形成一个链条。链条上的每个处理器各自承担各自的处理职责，所以叫作职责链模式。
+
+### 状态模式【行为型】
+
+状态模式一般用来实现状态机，而状态机常用在游戏、工作流引擎等系统开发中。不过，状态机的实现方式有多种，除了状态模式，比较常用的还有分支逻辑法和查表法。
+
+**有限状态机**
+
+状态机有 3 个组成部分：状态（State）、事件（Event）、动作（Action）。其中，事件也称为转移条件（Transition Condition）。事件触发状态的转移及动作的执行。不过，动作不是必须的，也可能只转移状态，不执行任何动作。
+
+事件会导致状态改变以及动作的发生
+
+### 迭代器模式【行为型】
+
+迭代器模式（Iterator Design Pattern），也叫作游标模式（Cursor Design Pattern）。
+
+这里说的“集合对象”也可以叫“容器”“聚合对象”，实际上就是包含一组对象的对象，比如数组、链表、树、图、跳表。迭代器模式将集合对象的遍历操作从集合类中拆分出来，放到迭代器类中，让两者的职责更加单一
+
+迭代器是用来遍历容器的，所以，一个完整的迭代器模式一般会涉及**容器和容器迭代器**部分两部分内容。为了达到基于接口而非实现编程的目的，容器又包含容器接口、容器实现类，迭代器又包含迭代器接口、迭代器实现类。
